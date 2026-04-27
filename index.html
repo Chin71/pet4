@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>拯救心愛的寵物大作戰</title>
+
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #111827;
+  font-family: "Microsoft JhengHei", Arial, sans-serif;
+  color: white;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#game {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  background: #7dd3fc;
+}
+
+.panel {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 120px;
+  width: 88%;
+  max-width: 520px;
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  z-index: 10;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: translate(-50%, 20px) scale(0.9); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+h2 {
+  margin-top: 0;
+  color: #fcd34d;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+button {
+  border: none;
+  border-radius: 16px;
+  padding: 14px 20px;
+  margin: 8px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+button:active {
+  transform: scale(0.95) translateY(2px);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+}
+
+.option {
+  display: block;
+  width: 95%;
+  margin: 12px auto;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 16px;
+  text-align: left;
+  border-left: 6px solid #3b82f6;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#controls {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 25px;
+  box-sizing: border-box;
+  z-index: 8;
+}
+
+.control-group {
+  display: flex;
+  gap: 15px;
+}
+
+.ctrl {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  font-size: 26px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.attack {
+  width: 80px;
+  height: 80px;
+  background: rgba(239, 68, 68, 0.85);
+  border-color: #fca5a5;
+  font-size: 32px;
+}
+
+.jump {
+  background: rgba(34, 197, 94, 0.85);
+  border-color: #86efac;
+}
+
+#topTitle {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 900;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.2);
+  z-index: 7;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="topTitle">🐾 拯救心愛的寵物大作戰 🐾</div>
+
+<canvas id="game"></canvas>
+
+<div id="startPanel" class="panel">
+  <h2>選擇你的角色</h2>
+  <p style="color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">
+    角色會自動尋敵！<br>
+    記得在半路跳躍吃愛心補血，並在怪物面前按 ⚔️ 攻擊。
+  </p>
+  <button onclick="startGame('勇者','🧑‍🎓')">🧑‍🎓 勇者</button>
+  <button onclick="startGame('魔法師','🧙')">🧙 魔法師</button>
+  <button onclick="startGame('小貓','🐱')">🐱 小貓</button>
+  <button onclick="startGame('小狗','🐶')">🐶 小狗</button>
+</div>
+
+<div id="questionPanel" class="panel hidden">
+  <h2 id="questionText" style="font-size: 20px; line-height: 1.4;"></h2>
+  <div id="options"></div>
+</div>
+
+<div id="messagePanel" class="panel hidden">
+  <h2 id="messageTitle" style="font-size: 24px;"></h2>
+  <p id="messageText" style="font-size: 16px; line-height: 1.6; color: #e2e8f0;"></p>
+  <button id="continueBtn" onclick="continueGame()" style="width: 80%; margin-top: 15px;">繼續冒險</button>
+</div>
+
+<div id="controls">
+  <div class="control-group">
+    <button class="ctrl" id="btnLeft">⬅️</button>
+    <button class="ctrl" id="btnRight">➡️</button>
+  </div>
+  <div class="control-group">
+    <button class="ctrl jump" id="btnJump">⬆️</button>
+    <button class="ctrl attack" id="btnAttack">⚔️</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+let keys = {};
+let gameStarted = false;
+let paused = true;
+let level = 0;
+let questionIndex = 0;
+let combo = 0;
+let slashTimer = 0;
+let damageTextTimer = 0;
+let particles = [];
+
+// 愛心補血系統變數
+let heart = { active: false, x: 0, y: 0, baseY: 0, frame: 0 };
+let healTextTimer = 0;
+let healTextPos = { x: 0, y: 0 };
+
+const groundY = () => canvas.height - 150;
+
+let player = {
+  name: "", emoji: "", x: 90, y: 0, vx: 0, vy: 0, hp: 3,
+  facing: 1, onGround: true, runFrame: 0, animatingOffset: 0
+};
+
+let monster = {
+  name: "", emoji: "", x: 0, y: 0, hp: 1, maxHp: 1,
+  hurt: false, animatingOffset: 0
+};
+
+const stages = [
+  {
+    name: "失眠森林", monster: "失眠史萊姆", emoji: "🦠",
+    bg1: "#1e3a8a", bg2: "#3b82f6", ground: "#0f172a", hp: 1,
+    questions: [{
+      q: "睡前喝咖啡或濃茶有助於提高睡眠品質。",
+      options: ["⭕ 是", "❌ 否"], answer: "❌ 否",
+      exp: "咖啡因會刺激神經系統，影響入睡速度與睡眠深度，建議下午過後避免攝取。"
+    }]
+  },
+  {
+    name: "藍光沼澤", monster: "藍光蝙蝠", emoji: "🦇",
+    bg1: "#312e81", bg2: "#8b5cf6", ground: "#1e1b4b", hp: 1,
+    questions: [{
+      q: "睡前在床上滑手機的藍光，不會影響大腦分泌褪黑激素。",
+      options: ["⭕ 是", "❌ 否"], answer: "❌ 否",
+      exp: "螢幕藍光會抑制褪黑激素分泌，欺騙大腦現在是白天，導致難以入睡。"
+    }]
+  },
+  {
+    name: "亂時差洞穴", monster: "亂時差哥布林", emoji: "👺",
+    bg1: "#4c1d95", bg2: "#c084fc", ground: "#2e1065", hp: 1,
+    questions: [{
+      q: "規律的作息時間可以幫助維持良好的生理時鐘，讓人更容易入睡。",
+      options: ["⭕ 是", "❌ 否"], answer: "⭕ 是",
+      exp: "每天盡量在固定的時間就寢和起床，是維持穩定睡眠品質的關鍵。"
+    }]
+  },
+  {
+    name: "壓力城堡", monster: "中級食人花", emoji: "🥀",
+    bg1: "#7f1d1d", bg2: "#f87171", ground: "#450a0a", hp: 2,
+    questions: [
+      {
+        q: "下列哪一種環境最適合幫助入睡？",
+        options: ["吵雜且明亮的房間", "安靜、黑暗且溫度適宜", "悶熱且潮濕的環境", "開著電視播放聲音"],
+        answer: "安靜、黑暗且溫度適宜",
+        exp: "涼爽、避光且安靜的環境能讓身體自然放鬆，進入深層睡眠。"
+      },
+      {
+        q: "如果躺在床上超過20分鐘還睡不著，最好的作法是什麼？",
+        options: ["繼續躺在床上強迫自己睡著", "起床做些放鬆的活動直到有睡意", "拿起手機開始滑社群軟體", "喝一杯濃茶提神"],
+        answer: "起床做些放鬆的活動直到有睡意",
+        exp: "強迫入睡會增加焦慮。應離開床鋪做伸展或看書，有睡意再回床上。"
+      }
+    ]
+  },
+  {
+    name: "睡眠破壞魔王城", monster: "睡眠破壞大魔王", emoji: "👹",
+    bg1: "#831843", bg2: "#f43f5e", ground: "#4c0519", hp: 3,
+    questions: [
+      {
+        q: "睡前做什麼活動有助於放鬆身心，提升睡眠品質？",
+        options: ["進行高強度的劇烈運動", "看刺激的恐怖電影", "聽輕音樂或進行靜心冥想", "吃豐盛的宵夜大餐"],
+        answer: "聽輕音樂或進行靜心冥想",
+        exp: "睡前應避免劇烈運動與情緒波動，靜心活動能幫助神經系統切換至休息模式。"
+      },
+      {
+        q: "關於午睡，下列哪一個觀念是正確的以防晚上失眠？",
+        options: ["午睡時間越久越好", "午睡最好控制在20到30分鐘內", "傍晚五點過後還可以繼續午睡", "午睡可以完全取代晚上的睡眠"],
+        answer: "午睡最好控制在20到30分鐘內",
+        exp: "超過30分鐘的午睡容易進入深層睡眠，醒來會感到昏沉，且會剝奪夜間睡眠驅力。"
+      },
+      {
+        q: "下列哪一種飲食習慣最可能會破壞夜間的睡眠品質？",
+        options: ["晚餐吃得過飽且油膩", "下午過後避免攝取咖啡因", "睡前喝少許溫熱的牛奶", "晚餐吃七分飽"],
+        answer: "晚餐吃得過飽且油膩",
+        exp: "過飽或油膩的食物會延長消化時間，導致躺下時胃酸逆流或腸胃不適，干擾睡眠。"
+      }
+    ]
+  }
+];
+
+function startGame(name, emoji) {
+  player.name = name;
+  player.emoji = emoji;
+  document.getElementById("startPanel").classList.add("hidden");
+  gameStarted = true;
+  paused = false;
+  loadStage();
+}
+
+function loadStage() {
+  const s = stages[level];
+  player.x = 90;
+  player.y = groundY();
+  player.vx = 0;
+  player.vy = 0;
+  player.animatingOffset = 0;
+  questionIndex = 0;
+  particles = [];
+
+  monster.name = s.monster;
+  monster.emoji = s.emoji;
+  monster.x = canvas.width - 210;
+  monster.y = groundY();
+  monster.hp = s.hp;
+  monster.maxHp = s.hp;
+  monster.hurt = false;
+  monster.animatingOffset = 0;
+
+  // 生成愛心
+  heart.active = true;
+  heart.x = canvas.width / 2 + (Math.random() * 80 - 40); // 生成在中間偏左右
+  heart.baseY = groundY() - 130 - Math.random() * 20;     // 需要跳躍的高度
+  heart.y = heart.baseY;
+  heart.frame = 0;
+}
+
+function askQuestion() {
+  paused = true;
+  keys["Enter"] = false; 
+  const q = stages[level].questions[questionIndex];
+
+  document.getElementById("questionPanel").classList.remove("hidden");
+  document.getElementById("questionText").textContent = q.q;
+
+  const options = document.getElementById("options");
+  options.innerHTML = "";
+
+  q.options.forEach(option => {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.textContent = option;
+    btn.onclick = () => answer(option);
+    options.appendChild(btn);
+  });
+}
+
+function answer(selected) {
+  document.getElementById("questionPanel").classList.add("hidden");
+  const q = stages[level].questions[questionIndex];
+
+  if (selected === q.answer) {
+    combo++;
+    animateAttack(true, q.exp); 
+  } else {
+    combo = 0;
+    animateAttack(false, "正確答案是：「" + q.answer + "」。\n" + q.exp); 
+  }
+}
+
+function createParticles(x, y, color) {
+  for (let i = 0; i < 15; i++) {
+    particles.push({
+      x: x, y: y,
+      vx: (Math.random() - 0.5) * 15,
+      vy: (Math.random() - 0.5) * 15,
+      life: 1, color: color
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1.0;
+}
+
+function animateAttack(isPlayerAttacking, text) {
+  paused = false; 
+  let step = 0;
+  
+  function stepAnim() {
+    step += 0.08;
+    if (step <= 1) {
+      let progress = Math.sin(step * Math.PI / 2);
+      if (isPlayerAttacking) {
+        player.animatingOffset = (monster.x - player.x - 90) * progress;
+      } else {
+        monster.animatingOffset = (player.x - monster.x + 90) * progress;
+      }
+      requestAnimationFrame(stepAnim);
+    } else {
+      if (isPlayerAttacking) {
+        monster.hp--;
+        monster.hurt = true;
+        slashTimer = 18;
+        damageTextTimer = 40;
+        createParticles(monster.x + 40, monster.y - 40, "#facc15");
+      } else {
+        player.hp--;
+        createParticles(player.x + 40, player.y - 40, "#ef4444");
+      }
+      
+      setTimeout(() => {
+        player.animatingOffset = 0;
+        monster.animatingOffset = 0;
+        monster.hurt = false;
+        paused = true; 
+        showMessage(isPlayerAttacking ? `Combo x${combo}！攻擊成功！` : "遭怪物反擊！", text);
+      }, 300);
+    }
+  }
+  requestAnimationFrame(stepAnim);
+}
+
+function showMessage(title, text) {
+  document.getElementById("messagePanel").classList.remove("hidden");
+  document.getElementById("messageTitle").textContent = title;
+  document.getElementById("messageTitle").style.color = title.includes("攻擊成功") ? "#4ade80" : "#f87171";
+  document.getElementById("messageText").innerText = text;
+}
+
+function continueGame() {
+  document.getElementById("messagePanel").classList.add("hidden");
+
+  if (player.hp <= 0) {
+    endGame(false); return;
+  }
+
+  if (monster.hp <= 0) {
+    level++;
+    if (level >= stages.length) {
+      endGame(true); return;
+    }
+    loadStage();
+    paused = false;
+    return;
+  }
+
+  questionIndex++;
+  paused = false;
+}
+
+function endGame(win) {
+  paused = true;
+  document.getElementById("messagePanel").classList.remove("hidden");
+
+  if (win) {
+    document.getElementById("messageTitle").textContent = "🎉 遊戲勝利！";
+    document.getElementById("messageTitle").style.color = "#fbbf24";
+    document.getElementById("messageText").textContent = "太棒了！你運用了豐富的睡眠健康知識擊退所有怪物，成功救出心愛的寵物！";
+  } else {
+    document.getElementById("messageTitle").textContent = "💀 遊戲失敗";
+    document.getElementById("messageTitle").style.color = "#ef4444";
+    document.getElementById("messageText").textContent = "生命值歸零了... 複習一下睡眠知識，重新挑戰吧！";
+  }
+
+  const btn = document.getElementById("continueBtn");
+  btn.textContent = "重新開始";
+  btn.onclick = () => location.reload();
+}
+
+function update() {
+  if (!gameStarted || paused) return;
+
+  const distance = Math.abs(player.x - monster.x);
+
+  // 如果沒有播放攻擊動畫，執行移動邏輯
+  if (player.animatingOffset === 0 && monster.animatingOffset === 0) {
+    
+    let isManual = false;
+    if (keys["ArrowLeft"]) {
+      player.vx = -6; player.facing = -1; player.runFrame += 0.25; isManual = true;
+    } else if (keys["ArrowRight"]) {
+      player.vx = 6; player.facing = 1; player.runFrame += 0.25; isManual = true;
+    }
+
+    // 自動前進 (如果玩家沒有按左右鍵)
+    if (!isManual) {
+      if (distance > 130) {
+        player.vx = 5; // 自動尋敵速度
+        player.facing = 1;
+        player.runFrame += 0.25;
+      } else {
+        player.vx = 0; // 進入攻擊範圍煞車
+      }
+    }
+
+    if (keys[" "] && player.onGround) {
+      player.vy = -18;
+      player.onGround = false;
+    }
+
+    player.vy += 1; 
+    player.x += player.vx;
+    player.y += player.vy;
+
+    if (player.y >= groundY()) {
+      player.y = groundY();
+      player.vy = 0;
+      player.onGround = true;
+    }
+
+    if (player.x < 30) player.x = 30;
+    if (player.x > canvas.width - 100) player.x = canvas.width - 100;
+
+    // 觸發攻擊判斷
+    if (distance < 140 && keys["Enter"]) {
+      keys["Enter"] = false;
+      askQuestion();
+    }
+  }
+
+  // 吃愛心判斷
+  if (heart.active) {
+    heart.frame += 0.1;
+    heart.y = heart.baseY + Math.sin(heart.frame) * 8; // 浮動效果
+
+    let dx = (player.x + 35) - (heart.x + 20); 
+    let dy = (player.y + 35) - (heart.y + 20);
+    let dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 65) { // 吃到愛心
+      heart.active = false;
+      createParticles(heart.x + 20, heart.y + 20, "#ef4444");
+      
+      healTextTimer = 40;
+      healTextPos.x = player.x;
+      healTextPos.y = player.y - 30;
+
+      if (player.hp < 3) {
+        player.hp++;
+      }
+    }
+  }
+  
+  updateParticles();
+}
+
+function drawBackground() {
+  const s = stages[level] || stages[stages.length - 1];
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  g.addColorStop(0, s.bg1);
+  g.addColorStop(1, s.bg2);
+
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgba(255,255,255,0.4)";
+  ctx.font = "40px Arial";
+  ctx.fillText("✨", canvas.width * 0.2, 100);
+  ctx.fillText("✨", canvas.width * 0.6, 150);
+  ctx.fillText("✨", canvas.width * 0.8, 80);
+
+  ctx.fillStyle = s.ground;
+  ctx.fillRect(0, groundY() + 60, canvas.width, canvas.height - groundY());
+  
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  ctx.fillRect(0, groundY() + 60, canvas.width, 10);
+}
+
+function drawTopUI() {
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath();
+  ctx.roundRect(15, 60, 200, 45, 10);
+  ctx.fill();
+
+  ctx.font = "24px Arial";
+  ctx.fillStyle = "white";
+  ctx.fillText("❤️".repeat(player.hp) + "🤍".repeat(3 - player.hp), 25, 92);
+
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath();
+  ctx.roundRect(canvas.width - 240, 60, 220, 65, 10);
+  ctx.fill();
+
+  ctx.font = "20px Microsoft JhengHei";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "right";
+  ctx.fillText(monster.name, canvas.width - 35, 88);
+  ctx.textAlign = "left";
+
+  ctx.fillStyle = "#475569";
+  ctx.fillRect(canvas.width - 225, 100, 190, 14);
+  let hpRatio = Math.max(0, monster.hp / monster.maxHp);
+  ctx.fillStyle = hpRatio > 0.3 ? "#22c55e" : "#ef4444";
+  ctx.fillRect(canvas.width - 225, 100, 190 * hpRatio, 14);
+
+  ctx.font = "bold 18px Microsoft JhengHei";
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fillText(`第 ${level + 1} 關：${stages[level].name}`, 20, 140);
+}
+
+function drawHeartAndText() {
+  if (heart.active) {
+    ctx.font = "45px Arial";
+    ctx.shadowColor = "rgba(239, 68, 68, 0.8)";
+    ctx.shadowBlur = 15;
+    ctx.fillText("❤️", heart.x, heart.y);
+    ctx.shadowBlur = 0; // 重置陰影
+  }
+
+  // 跳補血數字
+  if (healTextTimer > 0) {
+    healTextTimer--;
+    ctx.font = "bold 26px Arial";
+    ctx.fillStyle = "#4ade80"; // 綠色
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 3;
+    let text = player.hp >= 3 ? "MAX HP" : "+1 ❤️";
+    let floatY = healTextPos.y - (40 - healTextTimer); // 向上飄
+    ctx.strokeText(text, healTextPos.x, floatY);
+    ctx.fillText(text, healTextPos.x, floatY);
+  }
+}
+
+function drawPlayer() {
+  let drawX = player.x + player.animatingOffset;
+  let drawY = player.y;
+  let bounce = (player.vx !== 0 && player.onGround) ? Math.sin(player.runFrame) * 6 : 0;
+
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.beginPath();
+  ctx.ellipse(drawX + 35, groundY() + 65, 30, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = "75px Arial";
+  ctx.fillText(player.emoji, drawX, drawY + bounce);
+
+  ctx.font = "bold 18px Microsoft JhengHei";
+  ctx.fillStyle = "white";
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 3;
+  ctx.strokeText(player.name, drawX - 5, drawY + 85);
+  ctx.fillText(player.name, drawX - 5, drawY + 85);
+}
+
+function drawMonster() {
+  let drawX = monster.x + monster.animatingOffset;
+  let drawY = monster.y;
+  let shake = monster.hurt ? (Math.random() * 16 - 8) : 0;
+
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.beginPath();
+  ctx.ellipse(drawX + 45, groundY() + 65, 40, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = monster.maxHp >= 3 ? "105px Arial" : "85px Arial";
+  ctx.fillText(monster.emoji, drawX + shake, drawY + shake);
+
+  if (slashTimer > 0) {
+    slashTimer--;
+    ctx.strokeStyle = "#fbbf24";
+    ctx.lineWidth = 12;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(drawX - 20, drawY - 30);
+    ctx.lineTo(drawX + 100, drawY + 50);
+    ctx.stroke();
+    
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+  }
+
+  if (damageTextTimer > 0) {
+    damageTextTimer--;
+    ctx.font = "bold 36px Arial";
+    ctx.fillStyle = "#ef4444";
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 4;
+    ctx.strokeText("-1", drawX + 20, drawY - 40 - (40 - damageTextTimer));
+    ctx.fillText("-1", drawX + 20, drawY - 40 - (40 - damageTextTimer));
+  }
+}
+
+function drawPet() {
+  if(level < stages.length - 1) return;
+  let px = canvas.width - 100;
+  let py = groundY() - 5;
+  ctx.font = "50px Arial";
+  ctx.fillText("🐶", px, py);
+  ctx.font = "40px Arial";
+  ctx.fillText("🪤", px - 5, py + 40);
+}
+
+function drawGuide() {
+  if (!gameStarted || paused) return;
+  const distance = Math.abs(player.x - monster.x);
+  
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath();
+  ctx.roundRect(canvas.width / 2 - 160, canvas.height - 110, 320, 36, 18);
+  ctx.fill();
+
+  ctx.fillStyle = "#fbbf24";
+  ctx.font = "bold 18px Microsoft JhengHei";
+  ctx.textAlign = "center";
+  if (distance < 140) {
+    ctx.fillText("⚠️ 進入攻擊範圍！按 ⚔️ 進行挑戰！", canvas.width / 2, canvas.height - 86);
+  } else {
+    ctx.fillStyle = "white";
+    ctx.fillText("角色自動前進中... 記得跳躍吃愛心！", canvas.width / 2, canvas.height - 86);
+  }
+  ctx.textAlign = "left";
+}
+
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+
+  if (gameStarted) {
+    update();
+    drawPet();
+    drawMonster();
+    drawHeartAndText(); 
+    drawPlayer();
+    drawParticles();
+    drawTopUI();
+  }
+
+  drawGuide();
+  requestAnimationFrame(loop);
+}
+
+function bindBtn(id, key) {
+  const btn = document.getElementById(id);
+  const press = (e) => { e.preventDefault(); keys[key] = true; };
+  const release = (e) => { e.preventDefault(); keys[key] = false; };
+  
+  btn.addEventListener("touchstart", press, {passive: false});
+  btn.addEventListener("touchend", release, {passive: false});
+  btn.addEventListener("mousedown", press);
+  btn.addEventListener("mouseup", release);
+  btn.addEventListener("mouseleave", release);
+}
+
+bindBtn("btnLeft", "ArrowLeft");
+bindBtn("btnRight", "ArrowRight");
+bindBtn("btnJump", " ");
+bindBtn("btnAttack", "Enter");
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+loop();
+</script>
+
+</body>
+</html>
